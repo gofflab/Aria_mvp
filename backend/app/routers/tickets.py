@@ -20,6 +20,7 @@ router = APIRouter(prefix="/tickets", tags=["tickets"])
 def list_tickets(
     status: Optional[StatusEnum] = Query(None),
     severity: Optional[str] = Query(None),
+    equipment_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
 ):
     q = db.query(Ticket)
@@ -27,6 +28,8 @@ def list_tickets(
         q = q.filter(Ticket.status == status)
     if severity:
         q = q.filter(Ticket.severity == severity)
+    if equipment_id is not None:
+        q = q.filter(Ticket.equipment_id == equipment_id)
     return q.order_by(Ticket.updated_at.desc()).all()
 
 

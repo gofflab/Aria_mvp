@@ -9,8 +9,9 @@ import { formatDate } from "../utils/date";
 import toast from "react-hot-toast";
 import {
   ArrowLeft, Loader2, Save, Trash2, MessageSquarePlus, X,
-  User, Clock, Wrench, Calendar, ChevronRight,
+  User, Clock, Wrench, Calendar, ChevronRight, Microscope,
 } from "lucide-react";
+import { getEquipmentList } from "../api/equipment";
 
 const STATUSES = ["Open", "In Progress", "Resolved", "Closed"];
 const SEVERITIES = ["Low", "Medium", "High"];
@@ -26,6 +27,7 @@ export default function TicketDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [ticket, setTicket] = useState(null);
+  const [equipmentName, setEquipmentName] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -40,11 +42,19 @@ export default function TicketDetail() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await getTicket(id);
-      setTicket(res.data);
-      setStatus(res.data.status);
-      setAssignedTo(res.data.assigned_to ?? "");
-      setSeverity(res.data.severity);
+      const [tRes, eRes] = await Promise.all([
+        getTicket(id),
+        getEquipmentList(),
+      ]);
+      const t = tRes.data;
+      setTicket(t);
+      setStatus(t.status);
+      setAssignedTo(t.assigned_to ?? "");
+      setSeverity(t.severity);
+      if (t.equipment_id) {
+        const eq = eRes.data.find((e) => e.id === t.equipment_id);
+        setEquipmentName(eq?.name ?? null);
+      }
     } catch {
       toast.error("Ticket not found.");
       navigate("/");
@@ -189,6 +199,7 @@ export default function TicketDetail() {
                 {[
                   { icon: User, label: "Reporter", value: ticket.reporter_name },
                   { icon: Wrench, label: "Assigned To", value: ticket.assigned_to ?? "Unassigned" },
+                  ticket.equipment_id && { icon: Microscope, label: "Equipment", value: equipmentName },
                   { icon: Calendar, label: "Created", value: formatDate(ticket.created_at) },
                   { icon: Clock, label: "Updated", value: formatDate(ticket.updated_at) },
                   ticket.resolved_at && { icon: Clock, label: "Resolved", value: formatDate(ticket.resolved_at) },

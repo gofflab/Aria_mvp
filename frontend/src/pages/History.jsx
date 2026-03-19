@@ -1,28 +1,33 @@
 import { useEffect, useState } from "react";
 import { getHistory } from "../api/tickets";
+import { getEquipmentList } from "../api/equipment";
 import { Link } from "react-router-dom";
 import SeverityBadge from "../components/SeverityBadge";
 import { formatDate } from "../utils/date";
 import { Loader2, AlertCircle, History as HistoryIcon, CheckCircle2, ExternalLink } from "lucide-react";
 
 export default function History() {
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [search, setSearch] = useState("");
+  const [tickets, setTickets]     = useState([]);
+  const [equipmentMap, setEquipmentMap] = useState({});
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(null);
+  const [search, setSearch]       = useState("");
 
   useEffect(() => {
-    getHistory()
-      .then((res) => setTickets(res.data))
+    Promise.all([getHistory(), getEquipmentList()])
+      .then(([tRes, eRes]) => {
+        setTickets(tRes.data);
+        setEquipmentMap(Object.fromEntries(eRes.data.map((e) => [e.id, e.name])));
+      })
       .catch(() => setError("Failed to load history."))
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = search.trim()
     ? tickets.filter((t) =>
-        [t.instrument_part, t.reporter_name, t.assigned_to].some((v) =>
-          v?.toLowerCase().includes(search.toLowerCase())
-        )
+        [t.instrument_part, t.reporter_name, t.assigned_to,
+         t.equipment_id ? equipmentMap[t.equipment_id] : null,
+        ].some((v) => v?.toLowerCase().includes(search.toLowerCase()))
       )
     : tickets;
 
@@ -82,7 +87,7 @@ export default function History() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                {["Ticket", "Subsystem", "Severity", "Reporter", "Resolved By", "Resolved At"].map((h) => (
+                {["Ticket", "Equipment", "Subsystem", "Severity", "Reporter", "Resolved By", "Resolved At"].map((h) => (
                   <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     {h}
                   </th>
@@ -103,6 +108,16 @@ export default function History() {
                       #{t.id}
                       <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </Link>
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-slate-500">
+                    {t.equipment_id ? (
+                      <Link to={`/equipment/${t.equipment_id}`}
+                        className="text-violet-600 hover:text-violet-800 hover:underline font-medium">
+                        {equipmentMap[t.equipment_id] ?? `#${t.equipment_id}`}
+                      </Link>
+                    ) : (
+                      <span className="text-slate-300 italic">—</span>
+                    )}
                   </td>
                   <td className="px-5 py-3.5">
                     <span className="font-medium text-slate-800">{t.instrument_part}</span>

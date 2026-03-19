@@ -1,44 +1,67 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getTickets } from "../api/tickets";
+import { getEquipmentList } from "../api/equipment";
 import KanbanBoard from "../components/KanbanBoard";
 import TicketCard from "../components/TicketCard";
 import StatsBar from "../components/StatsBar";
-import { AlertCircle, Columns, List, Loader2, RefreshCw, SlidersHorizontal } from "lucide-react";
+import {
+  AlertCircle, Columns, List, Loader2, RefreshCw,
+  SlidersHorizontal, Microscope,
+} from "lucide-react";
 
 const SEVERITY_OPTIONS = ["all", "High", "Medium", "Low"];
 
 export default function Dashboard() {
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [view, setView] = useState("kanban"); // "kanban" | "list"
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [severityFilter, setSeverityFilter] = useState("all");
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const fetchTickets = useCallback(async () => {
+  const [tickets, setTickets]         = useState([]);
+  const [equipment, setEquipment]     = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState(null);
+  const [view, setView]               = useState("kanban");
+  const [statusFilter, setStatusFilter]       = useState("all");
+  const [severityFilter, setSeverityFilter]   = useState("all");
+  const [equipmentFilter, setEquipmentFilter] = useState(
+    searchParams.get("equipment_id") ?? "all"
+  );
+
+  // Sync equipment filter from URL param (e.g. from EquipmentDetail link)
+  useEffect(() => {
+    const id = searchParams.get("equipment_id");
+    if (id) setEquipmentFilter(id);
+  }, []);
+
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const params = {};
       if (severityFilter !== "all") params.severity = severityFilter;
-      const res = await getTickets(params);
-      setTickets(res.data);
+      if (equipmentFilter !== "all") params.equipment_id = equipmentFilter;
+
+      const [tRes, eRes] = await Promise.all([
+        getTickets(params),
+        getEquipmentList(),
+      ]);
+      setTickets(tRes.data);
+      setEquipment(eRes.data);
     } catch {
       setError("Cannot reach the backend. Is it running?");
     } finally {
       setLoading(false);
     }
-  }, [severityFilter]);
+  }, [severityFilter, equipmentFilter]);
 
-  useEffect(() => {
-    fetchTickets();
-  }, [fetchTickets]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Displayed tickets (client-side status filter for list view)
   const displayed =
     statusFilter === "all"
       ? tickets
       : tickets.filter((t) => t.status === statusFilter);
+
+  const activeEquipment = equipment.filter((e) => e.is_active);
+  const selectedEqName  = equipment.find((e) => String(e.id) === equipmentFilter)?.name;
 
   return (
     <div className="max-w-screen-xl mx-auto px-6 py-8">
@@ -47,11 +70,37 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Maintenance Dashboard</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            BD FACS Aria III — {tickets.length} ticket{tickets.length !== 1 ? "s" : ""}
+            {selectedEqName ? (
+              <span className="flex items-center gap-1.5">
+                <Microscope className="w-3.5 h-3.5" />
+                {selectedEqName} —
+              </span>
+            ) : null}
+            {tickets.length} ticket{tickets.length !== 1 ? "s" : ""}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Equipment filter */}
+          {activeEquipment.length > 0 && (
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
+              <Microscope className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={equipmentFilter}
+                onChange={(e) => {
+                  setEquipmentFilter(e.target.value);
+                  setStatusFilter("all");
+                }}
+                className="text-xs text-slate-600 bg-transparent focus:outline-none pr-4 max-w-[160px]"
+              >
+                <option value="all">All Equipment</option>
+                {activeEquipment.map((eq) => (
+                  <option key={eq.id} value={String(eq.id)}>{eq.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Severity filter */}
           <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
             <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
@@ -68,27 +117,25 @@ export default function Dashboard() {
 
           {/* View toggle */}
           <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 shadow-sm">
-            <button
-              onClick={() => setView("kanban")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
-                ${view === "kanban" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
-            >
-              <Columns className="w-3.5 h-3.5" />
-              Kanban
-            </button>
-            <button
-              onClick={() => setView("list")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
-                ${view === "list" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
-            >
-              <List className="w-3.5 h-3.5" />
-              List
-            </button>
+            {[
+              { id: "kanban", label: "Kanban", Icon: Columns },
+              { id: "list",   label: "List",   Icon: List },
+            ].map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => setView(id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
+                  ${view === id ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+              </button>
+            ))}
           </div>
 
           {/* Refresh */}
           <button
-            onClick={fetchTickets}
+            onClick={fetchAll}
             title="Refresh"
             className="flex items-center justify-center w-8 h-8 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-colors"
           >
@@ -121,10 +168,7 @@ export default function Dashboard() {
       ) : view === "kanban" ? (
         <KanbanBoard tickets={displayed} onTicketsChange={setTickets} />
       ) : (
-        <ListView
-          tickets={displayed}
-          statusFilter={statusFilter}
-        />
+        <ListView tickets={displayed} statusFilter={statusFilter} />
       )}
     </div>
   );
@@ -143,12 +187,9 @@ function ListView({ tickets, statusFilter }) {
       </div>
     );
   }
-
   return (
     <div className="flex flex-col gap-2.5">
-      {tickets.map((t) => (
-        <TicketCard key={t.id} ticket={t} />
-      ))}
+      {tickets.map((t) => <TicketCard key={t.id} ticket={t} />)}
     </div>
   );
 }

@@ -1,13 +1,21 @@
 import { Link, useLocation } from "react-router-dom";
-import { Microscope, LayoutDashboard, PlusCircle, History } from "lucide-react";
+import { Microscope, LayoutDashboard, PlusCircle, History, FlaskConical } from "lucide-react";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/equipment", label: "Equipment", icon: FlaskConical },
   { to: "/history", label: "History", icon: History },
 ];
 
 export default function Navbar() {
   const { pathname } = useLocation();
+
+  // Match active nav item — /equipment/new and /equipment/:id should highlight Equipment
+  const isActive = (to) => {
+    if (to === "/") return pathname === "/";
+    return pathname === to || pathname.startsWith(to + "/");
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-slate-200 shadow-sm">
       <div className="max-w-screen-xl mx-auto px-6 flex items-center h-14 gap-8">
@@ -17,8 +25,8 @@ export default function Navbar() {
             <Microscope className="w-4 h-4 text-white" />
           </div>
           <span className="font-semibold text-slate-800 text-sm leading-tight">
-            Aria III<br />
-            <span className="text-xs font-normal text-slate-400">Maintenance Tracker</span>
+            Lab Maintenance<br />
+            <span className="text-xs font-normal text-slate-400">Equipment Tracker</span>
           </span>
         </Link>
 
@@ -29,7 +37,7 @@ export default function Navbar() {
               key={to}
               to={to}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all
-                ${pathname === to
+                ${isActive(to)
                   ? "bg-blue-50 text-blue-700"
                   : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                 }`}

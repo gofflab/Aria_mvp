@@ -6,6 +6,9 @@ from sqlalchemy.orm import relationship
 
 from app.db.database import Base
 
+# Import equipment models so SQLAlchemy sees them before create_all
+import app.models.equipment  # noqa: F401
+
 
 class SeverityEnum(str, enum.Enum):
     low = "Low"
@@ -41,6 +44,16 @@ class Ticket(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
     resolved_at = Column(DateTime, nullable=True)
+
+    # Optional link to the Equipment registry.  SET NULL on equipment deletion
+    # so that tickets are never lost when equipment is removed.
+    equipment_id = Column(
+        Integer,
+        ForeignKey("equipment.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    equipment = relationship("Equipment", back_populates="tickets")
 
     comments = relationship(
         "Comment",

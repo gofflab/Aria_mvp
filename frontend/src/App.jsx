@@ -5,6 +5,9 @@ import Dashboard from "./pages/Dashboard";
 import NewTicket from "./pages/NewTicket";
 import TicketDetail from "./pages/TicketDetail";
 import History from "./pages/History";
+import Equipment from "./pages/Equipment";
+import NewEquipment from "./pages/NewEquipment";
+import EquipmentDetail from "./pages/EquipmentDetail";
 
 export default function App() {
   return (
@@ -13,14 +16,17 @@ export default function App() {
         <Navbar />
         <main className="flex-1">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/new" element={<NewTicket />} />
-            <Route path="/tickets/:id" element={<TicketDetail />} />
-            <Route path="/history" element={<History />} />
+            <Route path="/"                   element={<Dashboard />} />
+            <Route path="/new"                element={<NewTicket />} />
+            <Route path="/tickets/:id"        element={<TicketDetail />} />
+            <Route path="/history"            element={<History />} />
+            <Route path="/equipment"          element={<Equipment />} />
+            <Route path="/equipment/new"      element={<NewEquipment />} />
+            <Route path="/equipment/:id"      element={<EquipmentDetail />} />
           </Routes>
         </main>
         <footer className="text-center text-xs text-slate-400 py-4 border-t border-slate-100">
-          BD FACS Aria III Maintenance Tracker · Lab Equipment Management
+          Lab Equipment Maintenance Tracker · Multi-Instrument Management
         </footer>
       </div>
       <Toaster

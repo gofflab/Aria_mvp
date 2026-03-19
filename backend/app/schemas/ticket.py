@@ -30,6 +30,7 @@ class TicketCreate(BaseModel):
     problem_description: str
     severity: SeverityEnum = SeverityEnum.medium
     reporter_name: str
+    equipment_id: Optional[int] = None     # links to Equipment registry
 
 
 class TicketUpdate(BaseModel):
@@ -38,6 +39,7 @@ class TicketUpdate(BaseModel):
     severity: Optional[SeverityEnum] = None
     status: Optional[StatusEnum] = None
     assigned_to: Optional[str] = None
+    equipment_id: Optional[int] = None
 
 
 class TicketOut(BaseModel):
@@ -50,6 +52,7 @@ class TicketOut(BaseModel):
     status: StatusEnum
     reporter_name: str
     assigned_to: Optional[str]
+    equipment_id: Optional[int]
     created_at: datetime
     updated_at: datetime
     resolved_at: Optional[datetime]
@@ -66,5 +69,6 @@ class TicketSummary(BaseModel):
     status: StatusEnum
     reporter_name: str
     assigned_to: Optional[str]
+    equipment_id: Optional[int]
     created_at: datetime
     updated_at: datetime
