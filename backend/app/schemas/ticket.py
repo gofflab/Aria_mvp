@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 from app.models.ticket import SeverityEnum, StatusEnum
 
@@ -30,6 +30,8 @@ class TicketCreate(BaseModel):
     problem_description: str
     severity: SeverityEnum = SeverityEnum.medium
     reporter_name: str
+    reporter_email: Optional[EmailStr] = None
+    equipment_id: Optional[int] = None     # links to Equipment registry
 
 
 class TicketUpdate(BaseModel):
@@ -49,6 +51,7 @@ class TicketOut(BaseModel):
     severity: SeverityEnum
     status: StatusEnum
     reporter_name: str
+    reporter_email: Optional[str]
     assigned_to: Optional[str]
     created_at: datetime
     updated_at: datetime
@@ -65,6 +68,7 @@ class TicketSummary(BaseModel):
     severity: SeverityEnum
     status: StatusEnum
     reporter_name: str
+    reporter_email: Optional[str] = None
     assigned_to: Optional[str]
     created_at: datetime
     updated_at: datetime

@@ -53,6 +53,7 @@ export default function NewTicket() {
     problem_description: "",
     severity: "Medium",
     reporter_name: "",
+    reporter_email: "",
   });
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -65,7 +66,7 @@ export default function NewTicket() {
     }
     setSubmitting(true);
     try {
-      const res = await createTicket(form);
+      const res = await createTicket({ ...form, reporter_email: form.reporter_email || null });
       toast.success("Ticket created successfully!");
       navigate(`/tickets/${res.data.id}`);
     } catch {
@@ -170,20 +171,36 @@ export default function NewTicket() {
         </div>
 
         {/* Reporter */}
-        <div className="p-6">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">
-            Your Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={form.reporter_name}
-            onChange={set("reporter_name")}
-            placeholder="e.g. Dr. Jane Smith"
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm
-              text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent
-              transition-shadow placeholder:text-slate-400"
-            required
-          />
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Your Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.reporter_name}
+              onChange={set("reporter_name")}
+              placeholder="e.g. Dr. Jane Smith"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm
+                text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent
+                transition-shadow placeholder:text-slate-400"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Your Email
+              <span className="ml-2 text-xs font-normal text-slate-400">optional — for follow-up notifications</span>
+            </label>
+            <input
+              type="email"
+              value={form.reporter_email}
+              onChange={set("reporter_email")}
+              placeholder="e.g. jsmith@university.edu"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm
+                text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
+            />
+          </div>
         </div>
 
         {/* Actions */}

@@ -33,6 +33,7 @@ class Ticket(Base):
     severity = Column(Enum(SeverityEnum, **_ENUM_KWARGS), nullable=False, default=SeverityEnum.medium)
     status = Column(Enum(StatusEnum, **_ENUM_KWARGS), nullable=False, default=StatusEnum.open)
     reporter_name = Column(String(255), nullable=False)
+    reporter_email = Column(String(255), nullable=True)
     assigned_to = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(

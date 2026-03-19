@@ -9,7 +9,7 @@ import { formatDate } from "../utils/date";
 import toast from "react-hot-toast";
 import {
   ArrowLeft, Loader2, Save, Trash2, MessageSquarePlus, X,
-  User, Clock, Wrench, Calendar, ChevronRight,
+  User, Clock, Wrench, Calendar, ChevronRight, Mail,
 } from "lucide-react";
 
 const STATUSES = ["Open", "In Progress", "Resolved", "Closed"];
@@ -188,17 +188,21 @@ export default function TicketDetail() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                 {[
                   { icon: User, label: "Reporter", value: ticket.reporter_name },
+                  ticket.reporter_email && { icon: Mail, label: "Contact", value: ticket.reporter_email, href: `mailto:${ticket.reporter_email}` },
                   { icon: Wrench, label: "Assigned To", value: ticket.assigned_to ?? "Unassigned" },
                   { icon: Calendar, label: "Created", value: formatDate(ticket.created_at) },
                   { icon: Clock, label: "Updated", value: formatDate(ticket.updated_at) },
                   ticket.resolved_at && { icon: Clock, label: "Resolved", value: formatDate(ticket.resolved_at) },
-                ].filter(Boolean).map(({ icon: Icon, label, value }) => (
+                ].filter(Boolean).map(({ icon: Icon, label, value, href }) => (
                   <div key={label} className="bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
                     <div className="flex items-center gap-1 text-slate-400 mb-0.5">
                       <Icon className="w-3 h-3" />
                       <span className="uppercase tracking-wider text-[9px] font-semibold">{label}</span>
                     </div>
-                    <span className="text-slate-700 font-medium">{value}</span>
+                    {href
+                      ? <a href={href} className="text-blue-600 hover:underline font-medium text-sm truncate block">{value}</a>
+                      : <span className="text-slate-700 font-medium">{value}</span>
+                    }
                   </div>
                 ))}
               </div>
