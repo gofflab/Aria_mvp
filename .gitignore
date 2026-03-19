@@ -214,3 +214,8 @@ frontend/.env.local
 # SQLite DB (runtime artifact)
 *.db
 *.db-journal
+
+# Docker / local env
+.env
+__pycache__/
+.pytest_cache/

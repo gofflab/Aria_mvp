@@ -1,48 +1,56 @@
 #!/usr/bin/env bash
-set -e
+# ============================================================
+# BD FACS Aria III Maintenance Tracker — local dev setup
+# For production, use: docker compose up --build
+# ============================================================
+set -euo pipefail
 
-echo "=== BD FACS Aria III Maintenance Tracker — Setup ==="
+echo "=== Aria III Maintenance Tracker Setup ==="
 
-# ── Backend ──────────────────────────────────────────────────────────────────
-echo "[1/4] Creating backend structure..."
-mkdir -p backend/app/{models,schemas,routers,db}
-touch backend/app/__init__.py \
-      backend/app/models/__init__.py \
-      backend/app/schemas/__init__.py \
-      backend/app/routers/__init__.py \
-      backend/app/db/__init__.py
-
-cat > backend/requirements.txt << 'EOF'
-fastapi==0.111.0
-uvicorn[standard]==0.29.0
-sqlalchemy==2.0.30
-alembic==1.13.1
-pydantic==2.7.1
-python-multipart==0.0.9
-EOF
-
-echo "[2/4] Creating Python virtual environment..."
+# ── Backend ──────────────────────────────────────────────────
+echo "[1/3] Setting up Python backend…"
 python3 -m venv backend/.venv
 source backend/.venv/bin/activate
 pip install --quiet -r backend/requirements.txt
 deactivate
+echo "  ✓ Backend dependencies installed"
 
-# ── Frontend ─────────────────────────────────────────────────────────────────
-echo "[3/4] Scaffolding React + Vite + Tailwind..."
-npm create vite@latest frontend -- --template react --yes 2>/dev/null || \
-  npx create-vite@latest frontend --template react
+# ── Frontend ─────────────────────────────────────────────────
+echo "[2/3] Installing frontend dependencies…"
+(cd frontend && npm install --silent)
+echo "  ✓ Frontend dependencies installed"
 
-cd frontend
-npm install
-npm install -D tailwindcss@3 postcss autoprefixer
-npx tailwindcss init -p
-npm install axios react-router-dom lucide-react react-hot-toast
-cd ..
+# ── Env file ─────────────────────────────────────────────────
+echo "[3/3] Checking environment…"
+if [[ ! -f .env ]]; then
+  cp .env.example .env
+  echo "  ✓ Created .env from .env.example (review before running)"
+else
+  echo "  ✓ .env already exists"
+fi
 
-echo "[4/4] Done!"
 echo ""
-echo "To start the backend:"
-echo "  cd backend && source .venv/bin/activate && uvicorn app.main:app --reload"
+echo "════════════════════════════════════════════"
+echo " PRODUCTION (Docker Compose)"
+echo "════════════════════════════════════════════"
+echo "  docker compose up --build"
 echo ""
-echo "To start the frontend:"
+echo " Optional — seed test data:"
+echo "  docker compose exec backend python seed.py"
+echo "  docker compose exec backend python seed.py --reset"
+echo "  docker compose exec backend python seed.py --clean"
+echo ""
+echo "════════════════════════════════════════════"
+echo " LOCAL DEV (no Docker)"
+echo "════════════════════════════════════════════"
+echo " Terminal 1 — Backend:"
+echo "  cd backend && source .venv/bin/activate"
+echo "  uvicorn app.main:app --reload"
+echo "  (Uses SQLite by default; set DATABASE_URL for Postgres)"
+echo ""
+echo " Terminal 2 — Frontend:"
 echo "  cd frontend && npm run dev"
+echo "  → http://localhost:5173"
+echo ""
+echo " Run tests:"
+echo "  cd backend && source .venv/bin/activate && pytest -v"

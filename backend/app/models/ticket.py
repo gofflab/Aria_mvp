@@ -1,9 +1,7 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import (
-    Column, DateTime, Enum, ForeignKey, Integer, String, Text
-)
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
@@ -22,14 +20,18 @@ class StatusEnum(str, enum.Enum):
     closed = "Closed"
 
 
+# native_enum=False stores as VARCHAR — works identically on SQLite and PostgreSQL
+_ENUM_KWARGS = dict(native_enum=False)
+
+
 class Ticket(Base):
     __tablename__ = "tickets"
 
     id = Column(Integer, primary_key=True, index=True)
     instrument_part = Column(String(255), nullable=False)
     problem_description = Column(Text, nullable=False)
-    severity = Column(Enum(SeverityEnum), nullable=False, default=SeverityEnum.medium)
-    status = Column(Enum(StatusEnum), nullable=False, default=StatusEnum.open)
+    severity = Column(Enum(SeverityEnum, **_ENUM_KWARGS), nullable=False, default=SeverityEnum.medium)
+    status = Column(Enum(StatusEnum, **_ENUM_KWARGS), nullable=False, default=StatusEnum.open)
     reporter_name = Column(String(255), nullable=False)
     assigned_to = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -41,7 +43,10 @@ class Ticket(Base):
     resolved_at = Column(DateTime, nullable=True)
 
     comments = relationship(
-        "Comment", back_populates="ticket", cascade="all, delete-orphan", order_by="Comment.created_at"
+        "Comment",
+        back_populates="ticket",
+        cascade="all, delete-orphan",
+        order_by="Comment.created_at",
     )
 
 

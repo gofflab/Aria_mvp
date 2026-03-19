@@ -1,151 +1,154 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getTickets } from "../api/tickets";
+import KanbanBoard from "../components/KanbanBoard";
 import TicketCard from "../components/TicketCard";
-import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import StatsBar from "../components/StatsBar";
+import { AlertCircle, Columns, List, Loader2, RefreshCw, SlidersHorizontal } from "lucide-react";
 
-const STATUSES = ["Open", "In Progress", "Resolved", "Closed"];
-
-const STATUS_ICONS = {
-  Open: "🔴",
-  "In Progress": "🟡",
-  Resolved: "🟢",
-  Closed: "⚫",
-};
+const SEVERITY_OPTIONS = ["all", "High", "Medium", "Low"];
 
 export default function Dashboard() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const [view, setView] = useState("kanban"); // "kanban" | "list"
+  const [statusFilter, setStatusFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
 
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const params = {};
-      if (filter !== "all") params.status = filter;
       if (severityFilter !== "all") params.severity = severityFilter;
       const res = await getTickets(params);
       setTickets(res.data);
     } catch {
-      setError("Failed to load tickets. Is the backend running?");
+      setError("Cannot reach the backend. Is it running?");
     } finally {
       setLoading(false);
     }
-  };
+  }, [severityFilter]);
 
-  useEffect(() => { fetchTickets(); }, [filter, severityFilter]);
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]);
 
-  const grouped = STATUSES.reduce((acc, s) => {
-    acc[s] = tickets.filter((t) => t.status === s);
-    return acc;
-  }, {});
+  // Displayed tickets (client-side status filter for list view)
+  const displayed =
+    statusFilter === "all"
+      ? tickets
+      : tickets.filter((t) => t.status === statusFilter);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-screen-xl mx-auto px-6 py-8">
+      {/* Page header */}
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Maintenance Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-0.5">BD FACS Aria III — Issue Tracker</p>
+          <h1 className="text-2xl font-bold text-slate-900">Maintenance Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            BD FACS Aria III — {tickets.length} ticket{tickets.length !== 1 ? "s" : ""}
+          </p>
         </div>
-        <button
-          onClick={fetchTickets}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 border border-slate-200 rounded hover:bg-slate-50 transition-colors"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
-      </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <div className="flex gap-1 bg-white border border-slate-200 rounded p-1">
-          {["all", ...STATUSES].map((s) => (
-            <button
-              key={s}
-              onClick={() => setFilter(s)}
-              className={`px-3 py-1 rounded text-xs font-medium transition-colors
-                ${filter === s ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+        <div className="flex items-center gap-2">
+          {/* Severity filter */}
+          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+            <select
+              value={severityFilter}
+              onChange={(e) => setSeverityFilter(e.target.value)}
+              className="text-xs text-slate-600 bg-transparent focus:outline-none pr-4"
             >
-              {s === "all" ? "All" : s}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1 bg-white border border-slate-200 rounded p-1">
-          {["all", "High", "Medium", "Low"].map((s) => (
-            <button
-              key={s}
-              onClick={() => setSeverityFilter(s)}
-              className={`px-3 py-1 rounded text-xs font-medium transition-colors
-                ${severityFilter === s ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-100"}`}
-            >
-              {s === "all" ? "Any Severity" : s}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        {STATUSES.map((s) => (
-          <div
-            key={s}
-            className="bg-white border border-slate-200 rounded-lg p-4 text-center cursor-pointer hover:border-blue-300 transition-colors"
-            onClick={() => setFilter(s)}
-          >
-            <div className="text-2xl mb-1">{STATUS_ICONS[s]}</div>
-            <div className="text-xl font-bold text-slate-800">{grouped[s].length}</div>
-            <div className="text-xs text-slate-500">{s}</div>
+              {SEVERITY_OPTIONS.map((s) => (
+                <option key={s} value={s}>{s === "all" ? "All Severity" : s}</option>
+              ))}
+            </select>
           </div>
-        ))}
+
+          {/* View toggle */}
+          <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 shadow-sm">
+            <button
+              onClick={() => setView("kanban")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
+                ${view === "kanban" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+            >
+              <Columns className="w-3.5 h-3.5" />
+              Kanban
+            </button>
+            <button
+              onClick={() => setView("list")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
+                ${view === "list" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+            >
+              <List className="w-3.5 h-3.5" />
+              List
+            </button>
+          </div>
+
+          {/* Refresh */}
+          <button
+            onClick={fetchTickets}
+            title="Refresh"
+            className="flex items-center justify-center w-8 h-8 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${loading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
       </div>
+
+      {/* Stats */}
+      <StatsBar
+        tickets={tickets}
+        activeFilter={statusFilter}
+        onFilterChange={setStatusFilter}
+      />
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 rounded p-4 mb-6">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          {error}
+        <div className="flex items-center gap-3 bg-red-50 text-red-700 border border-red-200 rounded-xl p-4 mb-6">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span className="text-sm">{error}</span>
         </div>
       )}
 
-      {/* Ticket columns */}
+      {/* Content */}
       {loading ? (
-        <div className="flex justify-center py-16 text-slate-400">
+        <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
           <Loader2 className="w-8 h-8 animate-spin" />
+          <span className="text-sm">Loading tickets…</span>
         </div>
-      ) : filter !== "all" ? (
-        <div className="flex flex-col gap-3">
-          {tickets.length === 0 ? (
-            <p className="text-slate-400 text-center py-12">No tickets found.</p>
-          ) : (
-            tickets.map((t) => <TicketCard key={t.id} ticket={t} />)
-          )}
-        </div>
+      ) : view === "kanban" ? (
+        <KanbanBoard tickets={displayed} onTicketsChange={setTickets} />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {STATUSES.map((s) => (
-            <div key={s}>
-              <h2 className="text-sm font-semibold text-slate-600 mb-2 flex items-center gap-1.5">
-                {STATUS_ICONS[s]} {s}
-                <span className="ml-auto bg-slate-200 text-slate-600 text-xs px-1.5 py-0.5 rounded">
-                  {grouped[s].length}
-                </span>
-              </h2>
-              <div className="flex flex-col gap-2">
-                {grouped[s].length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-6 bg-white rounded border border-dashed border-slate-200">
-                    No tickets
-                  </p>
-                ) : (
-                  grouped[s].map((t) => <TicketCard key={t.id} ticket={t} />)
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <ListView
+          tickets={displayed}
+          statusFilter={statusFilter}
+        />
       )}
+    </div>
+  );
+}
+
+function ListView({ tickets, statusFilter }) {
+  if (tickets.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
+        <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
+          <List className="w-7 h-7" />
+        </div>
+        <p className="text-sm">
+          {statusFilter !== "all" ? `No "${statusFilter}" tickets.` : "No tickets yet."}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      {tickets.map((t) => (
+        <TicketCard key={t.id} ticket={t} />
+      ))}
     </div>
   );
 }
