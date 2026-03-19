@@ -205,3 +205,17 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/.env.local
+
+# SQLite DB (runtime artifact)
+*.db
+*.db-journal
+
+# Docker / local env
+.env
+__pycache__/
+.pytest_cache/
