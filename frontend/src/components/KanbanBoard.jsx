@@ -45,7 +45,7 @@ const COLUMNS = [
   },
 ];
 
-export default function KanbanBoard({ tickets, onTicketsChange }) {
+export default function KanbanBoard({ tickets, onTicketsChange, equipmentMap = {} }) {
   const [movingId, setMovingId] = useState(null);
 
   // Build column→tickets map, preserving order
@@ -143,6 +143,7 @@ export default function KanbanBoard({ tickets, onTicketsChange }) {
                           >
                             <TicketCard
                               ticket={ticket}
+                              equipmentName={ticket.equipment_id ? equipmentMap[ticket.equipment_id] : undefined}
                               isDragging={snapshot.isDragging}
                             />
                           </div>

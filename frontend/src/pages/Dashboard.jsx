@@ -7,19 +7,20 @@ import TicketCard from "../components/TicketCard";
 import StatsBar from "../components/StatsBar";
 import {
   AlertCircle, Columns, List, Loader2, RefreshCw,
-  SlidersHorizontal, Microscope,
+  SlidersHorizontal, Microscope, Search, X,
 } from "lucide-react";
 
 const SEVERITY_OPTIONS = ["all", "High", "Medium", "Low"];
 
 export default function Dashboard() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const [tickets, setTickets]         = useState([]);
   const [equipment, setEquipment]     = useState([]);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
   const [view, setView]               = useState("kanban");
+  const [search, setSearch]           = useState("");
   const [statusFilter, setStatusFilter]       = useState("all");
   const [severityFilter, setSeverityFilter]   = useState("all");
   const [equipmentFilter, setEquipmentFilter] = useState(
@@ -55,32 +56,62 @@ export default function Dashboard() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const displayed =
-    statusFilter === "all"
-      ? tickets
-      : tickets.filter((t) => t.status === statusFilter);
-
+  // Build id→name map for passing to cards
+  const equipmentMap = Object.fromEntries(equipment.map((e) => [e.id, e.name]));
   const activeEquipment = equipment.filter((e) => e.is_active);
   const selectedEqName  = equipment.find((e) => String(e.id) === equipmentFilter)?.name;
+
+  // Client-side text search (instrument_part, reporter, assignee, equipment name)
+  const needle = search.trim().toLowerCase();
+  const afterSearch = needle
+    ? tickets.filter((t) =>
+        [
+          t.instrument_part,
+          t.reporter_name,
+          t.assigned_to,
+          t.equipment_id ? equipmentMap[t.equipment_id] : null,
+        ].some((v) => v?.toLowerCase().includes(needle))
+      )
+    : tickets;
+
+  const displayed =
+    statusFilter === "all"
+      ? afterSearch
+      : afterSearch.filter((t) => t.status === statusFilter);
 
   return (
     <div className="max-w-screen-xl mx-auto px-6 py-8">
       {/* Page header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Maintenance Dashboard</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            {selectedEqName ? (
-              <span className="flex items-center gap-1.5">
-                <Microscope className="w-3.5 h-3.5" />
-                {selectedEqName} —
-              </span>
-            ) : null}
-            {tickets.length} ticket{tickets.length !== 1 ? "s" : ""}
+            {selectedEqName
+              ? `${selectedEqName} — `
+              : ""}
+            {displayed.length} ticket{displayed.length !== 1 ? "s" : ""}
+            {needle && ` matching "${search}"`}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Text search */}
+          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1 shadow-sm min-w-[180px]">
+            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search tickets…"
+              className="flex-1 text-xs text-slate-700 bg-transparent focus:outline-none placeholder:text-slate-400 min-w-0"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
           {/* Equipment filter */}
           {activeEquipment.length > 0 && (
             <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
@@ -146,7 +177,7 @@ export default function Dashboard() {
 
       {/* Stats */}
       <StatsBar
-        tickets={tickets}
+        tickets={afterSearch}
         activeFilter={statusFilter}
         onFilterChange={setStatusFilter}
       />
@@ -166,15 +197,23 @@ export default function Dashboard() {
           <span className="text-sm">Loading tickets…</span>
         </div>
       ) : view === "kanban" ? (
-        <KanbanBoard tickets={displayed} onTicketsChange={setTickets} />
+        <KanbanBoard
+          tickets={displayed}
+          onTicketsChange={setTickets}
+          equipmentMap={equipmentFilter === "all" ? equipmentMap : {}}
+        />
       ) : (
-        <ListView tickets={displayed} statusFilter={statusFilter} />
+        <ListView
+          tickets={displayed}
+          statusFilter={statusFilter}
+          equipmentMap={equipmentFilter === "all" ? equipmentMap : {}}
+        />
       )}
     </div>
   );
 }
 
-function ListView({ tickets, statusFilter }) {
+function ListView({ tickets, statusFilter, equipmentMap }) {
   if (tickets.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
@@ -182,14 +221,20 @@ function ListView({ tickets, statusFilter }) {
           <List className="w-7 h-7" />
         </div>
         <p className="text-sm">
-          {statusFilter !== "all" ? `No "${statusFilter}" tickets.` : "No tickets yet."}
+          {statusFilter !== "all" ? `No "${statusFilter}" tickets.` : "No tickets match."}
         </p>
       </div>
     );
   }
   return (
     <div className="flex flex-col gap-2.5">
-      {tickets.map((t) => <TicketCard key={t.id} ticket={t} />)}
+      {tickets.map((t) => (
+        <TicketCard
+          key={t.id}
+          ticket={t}
+          equipmentName={t.equipment_id ? equipmentMap[t.equipment_id] : undefined}
+        />
+      ))}
     </div>
   );
 }

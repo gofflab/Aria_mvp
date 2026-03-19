@@ -10,8 +10,9 @@ import StatusBadge from "../components/StatusBadge";
 import {
   ArrowLeft, Loader2, Save, Trash2, Plus, Pencil, Check, X,
   MapPin, Building2, Hash, BarChart2, Tag, ChevronRight,
-  ToggleLeft, ToggleRight, ExternalLink,
+  ToggleLeft, ToggleRight, ExternalLink, QrCode,
 } from "lucide-react";
+import QRCode from "react-qr-code";
 import toast from "react-hot-toast";
 
 // ── inline-editable field ────────────────────────────────────────────────────
@@ -146,6 +147,7 @@ export default function EquipmentDetail() {
   const [newSubDesc, setNewSubDesc] = useState("");
   const [addingSubsystem, setAddingSubsystem] = useState(false);
   const [showAddSub, setShowAddSub] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   const load = async () => {
     try {
@@ -362,7 +364,18 @@ export default function EquipmentDetail() {
               <ExternalLink className="w-4 h-4" />
               View on Dashboard
             </Link>
+            <button
+              onClick={() => setShowQR(true)}
+              className="flex items-center gap-1.5 border border-slate-200 bg-white text-slate-600
+                text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              <QrCode className="w-4 h-4" />
+              QR Code
+            </button>
           </div>
+
+          {/* QR Code modal */}
+          {showQR && <QRModal eq={eq} onClose={() => setShowQR(false)} />}
 
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-3">
@@ -413,6 +426,98 @@ export default function EquipmentDetail() {
               </Link>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── QR Code modal ─────────────────────────────────────────────────────────────
+function QRModal({ eq, onClose }) {
+  const url = `${window.location.origin}/equipment/${eq.id}`;
+
+  const handlePrint = () => {
+    const svgEl = document.getElementById("equipment-qr-svg");
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const win = window.open("", "_blank", "width=420,height=560");
+    win.document.write(`<!DOCTYPE html>
+<html>
+  <head>
+    <title>QR — ${eq.name}</title>
+    <style>
+      body { font-family: system-ui, sans-serif; text-align: center; padding: 32px; }
+      h1   { font-size: 18px; margin-bottom: 4px; }
+      p    { font-size: 12px; color: #666; margin: 4px 0; }
+      svg  { max-width: 220px; display: block; margin: 16px auto; }
+      .url { font-size: 10px; color: #aaa; word-break: break-all; margin-top: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>${eq.name}</h1>
+    ${eq.manufacturer ? `<p>${eq.manufacturer}</p>` : ""}
+    ${eq.location     ? `<p>${eq.location}</p>`     : ""}
+    ${svgData}
+    <p class="url">${url}</p>
+    <script>window.onload = () => { window.print(); };<\/script>
+  </body>
+</html>`);
+    win.document.close();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <QrCode className="w-4 h-4 text-slate-500" />
+            <span className="text-sm font-semibold text-slate-700">QR Code</span>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* QR code */}
+        <div className="flex flex-col items-center gap-3 px-6 py-6">
+          <div className="p-4 bg-white rounded-xl ring-1 ring-slate-200">
+            <QRCode
+              id="equipment-qr-svg"
+              value={url}
+              size={180}
+              bgColor="#ffffff"
+              fgColor="#1e293b"
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-slate-800">{eq.name}</p>
+            {eq.location && <p className="text-xs text-slate-400 mt-0.5">{eq.location}</p>}
+            <p className="text-[10px] text-slate-300 mt-1.5 break-all">{url}</p>
+          </div>
+          <p className="text-xs text-slate-400 text-center">
+            Scan to open this instrument's maintenance page directly.
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 px-5 pb-5">
+          <button
+            onClick={onClose}
+            className="flex-1 border border-slate-200 text-slate-600 text-sm font-medium py-2.5 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={handlePrint}
+            className="flex-1 flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800
+              text-white text-sm font-medium py-2.5 rounded-lg transition-colors shadow-sm"
+          >
+            <QrCode className="w-4 h-4" />
+            Print Label
+          </button>
         </div>
       </div>
     </div>

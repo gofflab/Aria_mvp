@@ -62,6 +62,10 @@ class Ticket(Base):
         order_by="Comment.created_at",
     )
 
+    @property
+    def comment_count(self) -> int:
+        return len(self.comments)
+
 
 class Comment(Base):
     __tablename__ = "comments"

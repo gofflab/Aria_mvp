@@ -60,7 +60,7 @@ class TicketOut(BaseModel):
 
 
 class TicketSummary(BaseModel):
-    """Lightweight version without comments — used for list views."""
+    """Lightweight version without full comments — used for list views."""
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -70,5 +70,6 @@ class TicketSummary(BaseModel):
     reporter_name: str
     assigned_to: Optional[str]
     equipment_id: Optional[int]
+    comment_count: int = 0
     created_at: datetime
     updated_at: datetime
