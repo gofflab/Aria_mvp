@@ -12,7 +12,7 @@ import {
   MapPin, Building2, Hash, BarChart2, Tag, ChevronRight,
   ToggleLeft, ToggleRight, ExternalLink, QrCode,
 } from "lucide-react";
-import QRCode from "react-qr-code";
+import { QRCode } from "react-qr-code";
 import toast from "react-hot-toast";
 
 // ── inline-editable field ────────────────────────────────────────────────────
